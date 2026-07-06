@@ -65,11 +65,7 @@ pipeline {
 
     stage('Push Image') {
       when {
-        anyOf {
-          expression { params.DEPLOY_TARGET == 'k8s' }
-          branch 'main'
-          branch 'master'
-        }
+        expression { params.DEPLOY_TARGET == 'k8s' }
       }
       steps {
         withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
