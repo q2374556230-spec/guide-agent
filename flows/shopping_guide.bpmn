@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_shopping_guide" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.48.0">
+  <bpmn:process id="shopping_guide" name="个性化电商导购流程" isExecutable="true">
+    <bpmn:startEvent id="Start" name="用户提出购买需求">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_ParseNeed" name="识别商品类别/预算/场景/偏好" camunda:delegateExpression="${h_parse_need}">
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_MissingInfo" name="是否缺少关键信息?">
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+      <bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_AskPreference" name="追问预算/用途/偏好" camunda:delegateExpression="${h_ask_preference}">
+      <bpmn:incoming>f3</bpmn:incoming>
+      <bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_LoadUserProfile" name="读取用户历史偏好" camunda:delegateExpression="${h_load_user_profile}">
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_SearchProducts" name="检索候选商品" camunda:delegateExpression="${h_search_products}">
+      <bpmn:incoming>f6</bpmn:incoming>
+      <bpmn:outgoing>f7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_ScoreProducts" name="生成商品多维评分" camunda:delegateExpression="${h_score_products}">
+      <bpmn:incoming>f7</bpmn:incoming>
+      <bpmn:outgoing>f8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_RiskCheck" name="是否存在明显风险?">
+      <bpmn:incoming>f8</bpmn:incoming>
+      <bpmn:outgoing>f9</bpmn:outgoing>
+      <bpmn:outgoing>f10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_MarkRisk" name="标记风险并降低推荐权重" camunda:delegateExpression="${h_mark_risk}">
+      <bpmn:incoming>f9</bpmn:incoming>
+      <bpmn:outgoing>f11</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_GenerateRecommendation" name="生成Top3推荐与风险提示" camunda:delegateExpression="${h_generate_recommendation}">
+      <bpmn:incoming>f10</bpmn:incoming>
+      <bpmn:incoming>f11</bpmn:incoming>
+      <bpmn:outgoing>f12</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_SavePreference" name="保存本次偏好" camunda:delegateExpression="${h_save_preference}">
+      <bpmn:incoming>f12</bpmn:incoming>
+      <bpmn:outgoing>f13</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_NotifyUser" name="通知用户" camunda:delegateExpression="${h_notify_user}">
+      <bpmn:incoming>f13</bpmn:incoming>
+      <bpmn:outgoing>f14</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_NeedMore" name="等待用户补充后结束">
+      <bpmn:incoming>f5</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End" name="结束">
+      <bpmn:incoming>f14</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="Start" targetRef="Task_ParseNeed" />
+    <bpmn:sequenceFlow id="f2" sourceRef="Task_ParseNeed" targetRef="Gateway_MissingInfo" />
+    <bpmn:sequenceFlow id="f3" name="是" sourceRef="Gateway_MissingInfo" targetRef="Task_AskPreference">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${missing_info == True}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f4" name="否" sourceRef="Gateway_MissingInfo" targetRef="Task_LoadUserProfile" />
+    <bpmn:sequenceFlow id="f5" sourceRef="Task_AskPreference" targetRef="End_NeedMore" />
+    <bpmn:sequenceFlow id="f6" sourceRef="Task_LoadUserProfile" targetRef="Task_SearchProducts" />
+    <bpmn:sequenceFlow id="f7" sourceRef="Task_SearchProducts" targetRef="Task_ScoreProducts" />
+    <bpmn:sequenceFlow id="f8" sourceRef="Task_ScoreProducts" targetRef="Gateway_RiskCheck" />
+    <bpmn:sequenceFlow id="f9" name="是" sourceRef="Gateway_RiskCheck" targetRef="Task_MarkRisk">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${has_risk == True}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f10" name="否" sourceRef="Gateway_RiskCheck" targetRef="Task_GenerateRecommendation" />
+    <bpmn:sequenceFlow id="f11" sourceRef="Task_MarkRisk" targetRef="Task_GenerateRecommendation" />
+    <bpmn:sequenceFlow id="f12" sourceRef="Task_GenerateRecommendation" targetRef="Task_SavePreference" />
+    <bpmn:sequenceFlow id="f13" sourceRef="Task_SavePreference" targetRef="Task_NotifyUser" />
+    <bpmn:sequenceFlow id="f14" sourceRef="Task_NotifyUser" targetRef="End" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diag_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="shopping_guide">
+      <bpmndi:BPMNShape id="di_Start" bpmnElement="Start">
+        <dc:Bounds x="180" y="200" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="154" y="236" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Parse" bpmnElement="Task_ParseNeed">
+        <dc:Bounds x="260" y="178" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Missing" bpmnElement="Gateway_MissingInfo" isMarkerVisible="true">
+        <dc:Bounds x="430" y="193" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="411" y="243" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Ask" bpmnElement="Task_AskPreference">
+        <dc:Bounds x="520" y="70" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Load" bpmnElement="Task_LoadUserProfile">
+        <dc:Bounds x="520" y="250" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Search" bpmnElement="Task_SearchProducts">
+        <dc:Bounds x="690" y="250" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Score" bpmnElement="Task_ScoreProducts">
+        <dc:Bounds x="860" y="250" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_RiskGw" bpmnElement="Gateway_RiskCheck" isMarkerVisible="true">
+        <dc:Bounds x="1030" y="265" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1011" y="315" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Risk" bpmnElement="Task_MarkRisk">
+        <dc:Bounds x="1120" y="150" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Gen" bpmnElement="Task_GenerateRecommendation">
+        <dc:Bounds x="1290" y="250" width="140" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Save" bpmnElement="Task_SavePreference">
+        <dc:Bounds x="1470" y="250" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Notify" bpmnElement="Task_NotifyUser">
+        <dc:Bounds x="1640" y="250" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_EndNeed" bpmnElement="End_NeedMore">
+        <dc:Bounds x="710" y="92" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="690" y="128" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_End" bpmnElement="End">
+        <dc:Bounds x="1800" y="272" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1807" y="308" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="di_f1" bpmnElement="f1">
+        <di:waypoint x="216" y="218" />
+        <di:waypoint x="260" y="218" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f2" bpmnElement="f2">
+        <di:waypoint x="390" y="218" />
+        <di:waypoint x="430" y="218" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f3" bpmnElement="f3">
+        <di:waypoint x="455" y="193" />
+        <di:waypoint x="455" y="110" />
+        <di:waypoint x="520" y="110" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f4" bpmnElement="f4">
+        <di:waypoint x="455" y="243" />
+        <di:waypoint x="455" y="290" />
+        <di:waypoint x="520" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f5" bpmnElement="f5">
+        <di:waypoint x="650" y="110" />
+        <di:waypoint x="710" y="110" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f6" bpmnElement="f6">
+        <di:waypoint x="650" y="290" />
+        <di:waypoint x="690" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f7" bpmnElement="f7">
+        <di:waypoint x="820" y="290" />
+        <di:waypoint x="860" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f8" bpmnElement="f8">
+        <di:waypoint x="990" y="290" />
+        <di:waypoint x="1030" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f9" bpmnElement="f9">
+        <di:waypoint x="1055" y="265" />
+        <di:waypoint x="1055" y="190" />
+        <di:waypoint x="1120" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f10" bpmnElement="f10">
+        <di:waypoint x="1080" y="290" />
+        <di:waypoint x="1290" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f11" bpmnElement="f11">
+        <di:waypoint x="1250" y="190" />
+        <di:waypoint x="1360" y="190" />
+        <di:waypoint x="1360" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f12" bpmnElement="f12">
+        <di:waypoint x="1430" y="290" />
+        <di:waypoint x="1470" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f13" bpmnElement="f13">
+        <di:waypoint x="1600" y="290" />
+        <di:waypoint x="1640" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f14" bpmnElement="f14">
+        <di:waypoint x="1760" y="290" />
+        <di:waypoint x="1800" y="290" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

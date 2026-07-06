@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logistics-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: logistics-service
+  template:
+    metadata:
+      labels:
+        app: logistics-service
+    spec:
+      containers:
+        - name: logistics-service
+          image: service-agent-lab:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "services/logistics_service.py"]
+          ports:
+            - containerPort: 8003
+          readinessProbe:
+            httpGet:
+              path: /track/20260601001
+              port: 8003
+            initialDelaySeconds: 3
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logistics-service
+spec:
+  selector:
+    app: logistics-service
+  ports:
+    - port: 8003
+      targetPort: 8003

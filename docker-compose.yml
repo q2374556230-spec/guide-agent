@@ -1,0 +1,50 @@
+# 云原生演示:每个微服务一个容器,Agent Web 入口通过服务名访问它们。
+# 用法:
+#   docker compose up -d --build
+#   浏览器打开 http://localhost:8000
+services:
+  order-service:
+    build: .
+    image: service-agent-lab:latest
+    command: python services/order_service.py
+    ports:
+      - "8001:8001"
+
+  product-service:
+    build: .
+    image: service-agent-lab:latest
+    command: python services/product_service.py
+    ports:
+      - "8002:8002"
+
+  logistics-service:
+    build: .
+    image: service-agent-lab:latest
+    command: python services/logistics_service.py
+    ports:
+      - "8003:8003"
+
+  app:
+    build: .
+    image: service-agent-lab:latest
+    command: python server.py
+    ports:
+      - "8000:8000"
+    environment:
+      # 部署模式下由独立容器提供微服务,Web 容器不再内嵌启动 8001/8002/8003。
+      - EMBEDDED_SERVICES=false
+      # 关键:用 Compose 服务名做服务发现,而非 localhost。
+      - ORDER_URL=http://order-service:8001
+      - PRODUCT_URL=http://product-service:8002
+      - LOGISTICS_URL=http://logistics-service:8003
+      - SHOPPING_AGENT_MODE=${SHOPPING_AGENT_MODE:-auto}
+      - PRODUCT_SOURCE=${PRODUCT_SOURCE:-demo}
+      # 如需真实 LLM,在本机 .env 中配置以下变量,Compose 会注入到容器。
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-}
+      - CHAT_MODEL=${CHAT_MODEL:-}
+    depends_on:
+      - order-service
+      - product-service
+      - logistics-service

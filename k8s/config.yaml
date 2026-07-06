@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-agent-config
+data:
+  EMBEDDED_SERVICES: "false"
+  ORDER_URL: "http://order-service:8001"
+  PRODUCT_URL: "http://product-service:8002"
+  LOGISTICS_URL: "http://logistics-service:8003"
+  SHOPPING_AGENT_MODE: "auto"
+  PRODUCT_SOURCE: "demo"

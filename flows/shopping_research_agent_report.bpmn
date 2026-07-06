@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_complete_agent_report"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Codex"
+                  exporterVersion="1.0">
+  <bpmn:process id="complete_agent_report"
+                name="智能服务系统完整业务流程图（报告用，不接入运行路径）"
+                isExecutable="false">
+    <bpmn:documentation>
+      本 BPMN 仅用于实验报告展示，不参与 Web 主路径执行。它合并展示原有订单/物流/商品咨询/售后 BPMN 路径，以及新增的真实 LLM 增强导购 evidence 推理路径。
+    </bpmn:documentation>
+
+    <bpmn:startEvent id="Start_UserMessage" name="用户输入问题">
+      <bpmn:outgoing>Flow_01</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_InputGuard" name="输入护栏&#10;input_guard">
+      <bpmn:incoming>Flow_01</bpmn:incoming>
+      <bpmn:outgoing>Flow_02</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_GuardPass" name="是否通过护栏?">
+      <bpmn:incoming>Flow_02</bpmn:incoming>
+      <bpmn:outgoing>Flow_03</bpmn:outgoing>
+      <bpmn:outgoing>Flow_04</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="End_Blocked" name="拒绝注入/敏感请求">
+      <bpmn:incoming>Flow_04</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="Task_Router" name="LLM/Mock 路由 Agent&#10;售后/物流/导购/其他">
+      <bpmn:incoming>Flow_03</bpmn:incoming>
+      <bpmn:outgoing>Flow_05</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Intent" name="意图分流">
+      <bpmn:incoming>Flow_05</bpmn:incoming>
+      <bpmn:outgoing>Flow_06</bpmn:outgoing>
+      <bpmn:outgoing>Flow_07</bpmn:outgoing>
+      <bpmn:outgoing>Flow_08</bpmn:outgoing>
+      <bpmn:outgoing>Flow_09</bpmn:outgoing>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- 售后 BPMN 路径 -->
+    <bpmn:subProcess id="Sub_Aftersale" name="售后退款路径&#10;原 aftersale.bpmn">
+      <bpmn:incoming>Flow_06</bpmn:incoming>
+      <bpmn:outgoing>Flow_30</bpmn:outgoing>
+      <bpmn:startEvent id="Af_Start" name="收到售后请求">
+        <bpmn:outgoing>Af_01</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Af_QueryOrder" name="查询订单+物流&#10;query_order/track_logistics">
+        <bpmn:incoming>Af_01</bpmn:incoming>
+        <bpmn:outgoing>Af_02</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:exclusiveGateway id="Af_GwTimeout" name="是否超时?">
+        <bpmn:incoming>Af_02</bpmn:incoming>
+        <bpmn:outgoing>Af_03</bpmn:outgoing>
+        <bpmn:outgoing>Af_04</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:serviceTask id="Af_Compensation" name="查超时补偿政策&#10;search_policy">
+        <bpmn:incoming>Af_03</bpmn:incoming>
+        <bpmn:outgoing>Af_05</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Af_RefundPolicy" name="查退款政策&#10;search_policy">
+        <bpmn:incoming>Af_04</bpmn:incoming>
+        <bpmn:outgoing>Af_06</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:exclusiveGateway id="Af_GwAmount" name="金额>=100?">
+        <bpmn:incoming>Af_05</bpmn:incoming>
+        <bpmn:incoming>Af_06</bpmn:incoming>
+        <bpmn:outgoing>Af_07</bpmn:outgoing>
+        <bpmn:outgoing>Af_08</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:userTask id="Af_ManualReview" name="人工审核">
+        <bpmn:incoming>Af_07</bpmn:incoming>
+        <bpmn:outgoing>Af_09</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:serviceTask id="Af_AutoRefund" name="自动发起退款&#10;refund_order">
+        <bpmn:incoming>Af_08</bpmn:incoming>
+        <bpmn:outgoing>Af_10</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Af_Notify" name="通知用户">
+        <bpmn:incoming>Af_09</bpmn:incoming>
+        <bpmn:incoming>Af_10</bpmn:incoming>
+        <bpmn:outgoing>Af_11</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="Af_End" name="售后完成">
+        <bpmn:incoming>Af_11</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Af_01" sourceRef="Af_Start" targetRef="Af_QueryOrder" />
+      <bpmn:sequenceFlow id="Af_02" sourceRef="Af_QueryOrder" targetRef="Af_GwTimeout" />
+      <bpmn:sequenceFlow id="Af_03" name="是" sourceRef="Af_GwTimeout" targetRef="Af_Compensation" />
+      <bpmn:sequenceFlow id="Af_04" name="否" sourceRef="Af_GwTimeout" targetRef="Af_RefundPolicy" />
+      <bpmn:sequenceFlow id="Af_05" sourceRef="Af_Compensation" targetRef="Af_GwAmount" />
+      <bpmn:sequenceFlow id="Af_06" sourceRef="Af_RefundPolicy" targetRef="Af_GwAmount" />
+      <bpmn:sequenceFlow id="Af_07" name="是" sourceRef="Af_GwAmount" targetRef="Af_ManualReview" />
+      <bpmn:sequenceFlow id="Af_08" name="否" sourceRef="Af_GwAmount" targetRef="Af_AutoRefund" />
+      <bpmn:sequenceFlow id="Af_09" sourceRef="Af_ManualReview" targetRef="Af_Notify" />
+      <bpmn:sequenceFlow id="Af_10" sourceRef="Af_AutoRefund" targetRef="Af_Notify" />
+      <bpmn:sequenceFlow id="Af_11" sourceRef="Af_Notify" targetRef="Af_End" />
+    </bpmn:subProcess>
+
+    <!-- 物流/订单 ReAct 路径 -->
+    <bpmn:subProcess id="Sub_Logistics" name="订单/物流查询路径&#10;原 ReAct + 工具">
+      <bpmn:incoming>Flow_07</bpmn:incoming>
+      <bpmn:outgoing>Flow_31</bpmn:outgoing>
+      <bpmn:startEvent id="Log_Start" name="物流/订单问题">
+        <bpmn:outgoing>Log_01</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Log_Plan" name="ReAct 规划工具调用">
+        <bpmn:incoming>Log_01</bpmn:incoming>
+        <bpmn:outgoing>Log_02</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Log_QueryOrder" name="查询订单&#10;query_order">
+        <bpmn:incoming>Log_02</bpmn:incoming>
+        <bpmn:outgoing>Log_03</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Log_Track" name="查询物流&#10;track_logistics">
+        <bpmn:incoming>Log_03</bpmn:incoming>
+        <bpmn:outgoing>Log_04</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Log_Policy" name="必要时检索政策&#10;search_policy">
+        <bpmn:incoming>Log_04</bpmn:incoming>
+        <bpmn:outgoing>Log_05</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="Log_End" name="生成物流答复">
+        <bpmn:incoming>Log_05</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Log_01" sourceRef="Log_Start" targetRef="Log_Plan" />
+      <bpmn:sequenceFlow id="Log_02" sourceRef="Log_Plan" targetRef="Log_QueryOrder" />
+      <bpmn:sequenceFlow id="Log_03" sourceRef="Log_QueryOrder" targetRef="Log_Track" />
+      <bpmn:sequenceFlow id="Log_04" sourceRef="Log_Track" targetRef="Log_Policy" />
+      <bpmn:sequenceFlow id="Log_05" sourceRef="Log_Policy" targetRef="Log_End" />
+    </bpmn:subProcess>
+
+    <!-- 普通商品查询路径 -->
+    <bpmn:subProcess id="Sub_ProductQuery" name="普通商品咨询路径&#10;价格/库存/评分">
+      <bpmn:incoming>Flow_08</bpmn:incoming>
+      <bpmn:outgoing>Flow_32</bpmn:outgoing>
+      <bpmn:startEvent id="Prod_Start" name="商品咨询">
+        <bpmn:outgoing>Prod_01</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Prod_Query" name="查询商品&#10;query_product">
+        <bpmn:incoming>Prod_01</bpmn:incoming>
+        <bpmn:outgoing>Prod_02</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="Prod_End" name="返回价格/库存/评分">
+        <bpmn:incoming>Prod_02</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Prod_01" sourceRef="Prod_Start" targetRef="Prod_Query" />
+      <bpmn:sequenceFlow id="Prod_02" sourceRef="Prod_Query" targetRef="Prod_End" />
+    </bpmn:subProcess>
+
+    <!-- 增强导购路径 -->
+    <bpmn:subProcess id="Sub_ShoppingResearch" name="增强导购路径&#10;真实 LLM + 工具 + evidence">
+      <bpmn:incoming>Flow_09</bpmn:incoming>
+      <bpmn:outgoing>Flow_33</bpmn:outgoing>
+      <bpmn:startEvent id="Shop_Start" name="购买决策需求">
+        <bpmn:outgoing>Shop_01</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Shop_Understand" name="真实 LLM/规则理解需求&#10;预算/场景/偏好/避雷">
+        <bpmn:incoming>Shop_01</bpmn:incoming>
+        <bpmn:outgoing>Shop_02</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Shop_Candidates" name="collect_product_candidates&#10;检索候选商品">
+        <bpmn:incoming>Shop_02</bpmn:incoming>
+        <bpmn:outgoing>Shop_03</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Shop_Reviews" name="collect_review_summary&#10;评价摘要/风险点">
+        <bpmn:incoming>Shop_03</bpmn:incoming>
+        <bpmn:outgoing>Shop_04</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Shop_Sales" name="collect_sales_signal&#10;价格/评分/月销量">
+        <bpmn:incoming>Shop_04</bpmn:incoming>
+        <bpmn:outgoing>Shop_05</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Shop_Store" name="collect_store_profile&#10;店铺/售后评分">
+        <bpmn:incoming>Shop_05</bpmn:incoming>
+        <bpmn:outgoing>Shop_06</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Shop_Evidence" name="构造 evidence 证据包">
+        <bpmn:incoming>Shop_06</bpmn:incoming>
+        <bpmn:outgoing>Shop_07</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:exclusiveGateway id="Shop_GwLLM" name="真实 LLM 可用?">
+        <bpmn:incoming>Shop_07</bpmn:incoming>
+        <bpmn:outgoing>Shop_08</bpmn:outgoing>
+        <bpmn:outgoing>Shop_09</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:serviceTask id="Shop_RealLLM" name="真实 LLM 基于 evidence 推理&#10;Top3/理由/风险/不推荐项">
+        <bpmn:incoming>Shop_08</bpmn:incoming>
+        <bpmn:outgoing>Shop_10</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="Shop_Fallback" name="fallback 规则推荐&#10;recommend_products">
+        <bpmn:incoming>Shop_09</bpmn:incoming>
+        <bpmn:outgoing>Shop_11</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="Shop_End" name="生成导购答复">
+        <bpmn:incoming>Shop_10</bpmn:incoming>
+        <bpmn:incoming>Shop_11</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Shop_01" sourceRef="Shop_Start" targetRef="Shop_Understand" />
+      <bpmn:sequenceFlow id="Shop_02" sourceRef="Shop_Understand" targetRef="Shop_Candidates" />
+      <bpmn:sequenceFlow id="Shop_03" sourceRef="Shop_Candidates" targetRef="Shop_Reviews" />
+      <bpmn:sequenceFlow id="Shop_04" sourceRef="Shop_Reviews" targetRef="Shop_Sales" />
+      <bpmn:sequenceFlow id="Shop_05" sourceRef="Shop_Sales" targetRef="Shop_Store" />
+      <bpmn:sequenceFlow id="Shop_06" sourceRef="Shop_Store" targetRef="Shop_Evidence" />
+      <bpmn:sequenceFlow id="Shop_07" sourceRef="Shop_Evidence" targetRef="Shop_GwLLM" />
+      <bpmn:sequenceFlow id="Shop_08" name="是" sourceRef="Shop_GwLLM" targetRef="Shop_RealLLM" />
+      <bpmn:sequenceFlow id="Shop_09" name="否/失败" sourceRef="Shop_GwLLM" targetRef="Shop_Fallback" />
+      <bpmn:sequenceFlow id="Shop_10" sourceRef="Shop_RealLLM" targetRef="Shop_End" />
+      <bpmn:sequenceFlow id="Shop_11" sourceRef="Shop_Fallback" targetRef="Shop_End" />
+    </bpmn:subProcess>
+
+    <bpmn:serviceTask id="Task_DefaultReply" name="其他问题&#10;默认帮助答复">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_34</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_OutputMaskTrace" name="输出脱敏 + Web trace&#10;pii_mask / serve_struct">
+      <bpmn:incoming>Flow_30</bpmn:incoming>
+      <bpmn:incoming>Flow_31</bpmn:incoming>
+      <bpmn:incoming>Flow_32</bpmn:incoming>
+      <bpmn:incoming>Flow_33</bpmn:incoming>
+      <bpmn:incoming>Flow_34</bpmn:incoming>
+      <bpmn:outgoing>Flow_35</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="End_Response" name="返回用户">
+      <bpmn:incoming>Flow_35</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_01" sourceRef="Start_UserMessage" targetRef="Task_InputGuard" />
+    <bpmn:sequenceFlow id="Flow_02" sourceRef="Task_InputGuard" targetRef="Gateway_GuardPass" />
+    <bpmn:sequenceFlow id="Flow_03" name="通过" sourceRef="Gateway_GuardPass" targetRef="Task_Router" />
+    <bpmn:sequenceFlow id="Flow_04" name="拦截" sourceRef="Gateway_GuardPass" targetRef="End_Blocked" />
+    <bpmn:sequenceFlow id="Flow_05" sourceRef="Task_Router" targetRef="Gateway_Intent" />
+    <bpmn:sequenceFlow id="Flow_06" name="售后" sourceRef="Gateway_Intent" targetRef="Sub_Aftersale" />
+    <bpmn:sequenceFlow id="Flow_07" name="物流/订单" sourceRef="Gateway_Intent" targetRef="Sub_Logistics" />
+    <bpmn:sequenceFlow id="Flow_08" name="商品咨询" sourceRef="Gateway_Intent" targetRef="Sub_ProductQuery" />
+    <bpmn:sequenceFlow id="Flow_09" name="导购/购买决策" sourceRef="Gateway_Intent" targetRef="Sub_ShoppingResearch" />
+    <bpmn:sequenceFlow id="Flow_10" name="其他" sourceRef="Gateway_Intent" targetRef="Task_DefaultReply" />
+    <bpmn:sequenceFlow id="Flow_30" sourceRef="Sub_Aftersale" targetRef="Task_OutputMaskTrace" />
+    <bpmn:sequenceFlow id="Flow_31" sourceRef="Sub_Logistics" targetRef="Task_OutputMaskTrace" />
+    <bpmn:sequenceFlow id="Flow_32" sourceRef="Sub_ProductQuery" targetRef="Task_OutputMaskTrace" />
+    <bpmn:sequenceFlow id="Flow_33" sourceRef="Sub_ShoppingResearch" targetRef="Task_OutputMaskTrace" />
+    <bpmn:sequenceFlow id="Flow_34" sourceRef="Task_DefaultReply" targetRef="Task_OutputMaskTrace" />
+    <bpmn:sequenceFlow id="Flow_35" sourceRef="Task_OutputMaskTrace" targetRef="End_Response" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="Diagram_complete_agent_report">
+    <bpmndi:BPMNPlane id="Plane_complete_agent_report" bpmnElement="complete_agent_report">
+      <bpmndi:BPMNShape id="Shape_Start_UserMessage" bpmnElement="Start_UserMessage">
+        <dc:Bounds x="110" y="360" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_InputGuard" bpmnElement="Task_InputGuard">
+        <dc:Bounds x="200" y="338" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_GuardPass" bpmnElement="Gateway_GuardPass" isMarkerVisible="true">
+        <dc:Bounds x="380" y="353" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_Blocked" bpmnElement="End_Blocked">
+        <dc:Bounds x="477" y="498" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Router" bpmnElement="Task_Router">
+        <dc:Bounds x="490" y="338" width="150" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_Intent" bpmnElement="Gateway_Intent" isMarkerVisible="true">
+        <dc:Bounds x="700" y="353" width="50" height="50" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Shape_Sub_Aftersale" bpmnElement="Sub_Aftersale" isExpanded="false">
+        <dc:Bounds x="850" y="60" width="210" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Sub_Logistics" bpmnElement="Sub_Logistics" isExpanded="false">
+        <dc:Bounds x="850" y="205" width="210" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Sub_ProductQuery" bpmnElement="Sub_ProductQuery" isExpanded="false">
+        <dc:Bounds x="850" y="350" width="210" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Sub_ShoppingResearch" bpmnElement="Sub_ShoppingResearch" isExpanded="false">
+        <dc:Bounds x="850" y="495" width="210" height="90" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_DefaultReply" bpmnElement="Task_DefaultReply">
+        <dc:Bounds x="850" y="640" width="210" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_OutputMaskTrace" bpmnElement="Task_OutputMaskTrace">
+        <dc:Bounds x="1180" y="338" width="180" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_Response" bpmnElement="End_Response">
+        <dc:Bounds x="1430" y="360" width="36" height="36" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_01" bpmnElement="Flow_01">
+        <di:waypoint x="146" y="378" />
+        <di:waypoint x="200" y="378" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_02" bpmnElement="Flow_02">
+        <di:waypoint x="330" y="378" />
+        <di:waypoint x="380" y="378" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_03" bpmnElement="Flow_03">
+        <di:waypoint x="430" y="378" />
+        <di:waypoint x="490" y="378" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_04" bpmnElement="Flow_04">
+        <di:waypoint x="405" y="403" />
+        <di:waypoint x="405" y="516" />
+        <di:waypoint x="477" y="516" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_05" bpmnElement="Flow_05">
+        <di:waypoint x="640" y="378" />
+        <di:waypoint x="700" y="378" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_06" bpmnElement="Flow_06">
+        <di:waypoint x="725" y="353" />
+        <di:waypoint x="725" y="105" />
+        <di:waypoint x="850" y="105" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_07" bpmnElement="Flow_07">
+        <di:waypoint x="750" y="378" />
+        <di:waypoint x="790" y="378" />
+        <di:waypoint x="790" y="250" />
+        <di:waypoint x="850" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_08" bpmnElement="Flow_08">
+        <di:waypoint x="750" y="378" />
+        <di:waypoint x="850" y="395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_09" bpmnElement="Flow_09">
+        <di:waypoint x="725" y="403" />
+        <di:waypoint x="725" y="540" />
+        <di:waypoint x="850" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_10" bpmnElement="Flow_10">
+        <di:waypoint x="725" y="403" />
+        <di:waypoint x="725" y="680" />
+        <di:waypoint x="850" y="680" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Edge_Flow_30" bpmnElement="Flow_30">
+        <di:waypoint x="1060" y="105" />
+        <di:waypoint x="1270" y="105" />
+        <di:waypoint x="1270" y="338" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_31" bpmnElement="Flow_31">
+        <di:waypoint x="1060" y="250" />
+        <di:waypoint x="1270" y="250" />
+        <di:waypoint x="1270" y="338" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_32" bpmnElement="Flow_32">
+        <di:waypoint x="1060" y="395" />
+        <di:waypoint x="1180" y="378" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_33" bpmnElement="Flow_33">
+        <di:waypoint x="1060" y="540" />
+        <di:waypoint x="1270" y="540" />
+        <di:waypoint x="1270" y="418" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_34" bpmnElement="Flow_34">
+        <di:waypoint x="1060" y="680" />
+        <di:waypoint x="1270" y="680" />
+        <di:waypoint x="1270" y="418" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_35" bpmnElement="Flow_35">
+        <di:waypoint x="1360" y="378" />
+        <di:waypoint x="1430" y="378" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

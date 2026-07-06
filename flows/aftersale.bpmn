@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="Definitions_aftersale" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="aftersale_refund" name="售后退款流程" isExecutable="true">
+    <bpmn:startEvent id="Start" name="收到售后请求">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_QueryOrder" name="查询订单" camunda:delegateExpression="${h_query_order}">
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Timeout" name="是否超时?">
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+      <bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_Compensation" name="查超时补偿政策" camunda:delegateExpression="${h_compensation}">
+      <bpmn:incoming>f3</bpmn:incoming>
+      <bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_RefundPolicy" name="查退款政策" camunda:delegateExpression="${h_refund_policy}">
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Amount" name="金额≥100需人工?">
+      <bpmn:incoming>f5</bpmn:incoming>
+      <bpmn:incoming>f6</bpmn:incoming>
+      <bpmn:outgoing>f7</bpmn:outgoing>
+      <bpmn:outgoing>f8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_ManualReview" name="人工审核">
+      <bpmn:incoming>f7</bpmn:incoming>
+      <bpmn:outgoing>f9</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_AutoRefund" name="自动发起退款" camunda:delegateExpression="${h_auto_refund}">
+      <bpmn:incoming>f8</bpmn:incoming>
+      <bpmn:outgoing>f10</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Notify" name="通知用户" camunda:delegateExpression="${h_notify}">
+      <bpmn:incoming>f9</bpmn:incoming>
+      <bpmn:incoming>f10</bpmn:incoming>
+      <bpmn:outgoing>f11</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End" name="结束">
+      <bpmn:incoming>f11</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="Start" targetRef="Task_QueryOrder" />
+    <bpmn:sequenceFlow id="f2" sourceRef="Task_QueryOrder" targetRef="Gw_Timeout" />
+    <bpmn:sequenceFlow id="f3" name="是" sourceRef="Gw_Timeout" targetRef="Task_Compensation">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${timed_out == True}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f4" name="否" sourceRef="Gw_Timeout" targetRef="Task_RefundPolicy" />
+    <bpmn:sequenceFlow id="f5" sourceRef="Task_Compensation" targetRef="Gw_Amount" />
+    <bpmn:sequenceFlow id="f6" sourceRef="Task_RefundPolicy" targetRef="Gw_Amount" />
+    <bpmn:sequenceFlow id="f7" name="是" sourceRef="Gw_Amount" targetRef="Task_ManualReview">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${amount &gt;= 100}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f8" name="否" sourceRef="Gw_Amount" targetRef="Task_AutoRefund" />
+    <bpmn:sequenceFlow id="f9" sourceRef="Task_ManualReview" targetRef="Task_Notify" />
+    <bpmn:sequenceFlow id="f10" sourceRef="Task_AutoRefund" targetRef="Task_Notify" />
+    <bpmn:sequenceFlow id="f11" sourceRef="Task_Notify" targetRef="End" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diag_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="aftersale_refund">
+      <bpmndi:BPMNShape id="di_Start" bpmnElement="Start">
+        <dc:Bounds x="160" y="222" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_QueryOrder" bpmnElement="Task_QueryOrder">
+        <dc:Bounds x="240" y="200" width="110" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_GwTimeout" bpmnElement="Gw_Timeout" isMarkerVisible="true">
+        <dc:Bounds x="400" y="215" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Comp" bpmnElement="Task_Compensation">
+        <dc:Bounds x="500" y="90" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_RefundPolicy" bpmnElement="Task_RefundPolicy">
+        <dc:Bounds x="500" y="320" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_GwAmount" bpmnElement="Gw_Amount" isMarkerVisible="true">
+        <dc:Bounds x="670" y="215" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Manual" bpmnElement="Task_ManualReview">
+        <dc:Bounds x="770" y="90" width="110" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_AutoRefund" bpmnElement="Task_AutoRefund">
+        <dc:Bounds x="770" y="320" width="110" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_Notify" bpmnElement="Task_Notify">
+        <dc:Bounds x="940" y="200" width="110" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="di_End" bpmnElement="End">
+        <dc:Bounds x="1100" y="222" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="di_f1" bpmnElement="f1">
+        <di:waypoint x="196" y="240" /><di:waypoint x="240" y="240" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f2" bpmnElement="f2">
+        <di:waypoint x="350" y="240" /><di:waypoint x="400" y="240" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f3" bpmnElement="f3">
+        <di:waypoint x="425" y="215" /><di:waypoint x="425" y="130" /><di:waypoint x="500" y="130" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f4" bpmnElement="f4">
+        <di:waypoint x="425" y="265" /><di:waypoint x="425" y="360" /><di:waypoint x="500" y="360" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f5" bpmnElement="f5">
+        <di:waypoint x="620" y="130" /><di:waypoint x="695" y="130" /><di:waypoint x="695" y="215" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f6" bpmnElement="f6">
+        <di:waypoint x="620" y="360" /><di:waypoint x="695" y="360" /><di:waypoint x="695" y="265" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f7" bpmnElement="f7">
+        <di:waypoint x="695" y="215" /><di:waypoint x="695" y="130" /><di:waypoint x="770" y="130" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f8" bpmnElement="f8">
+        <di:waypoint x="695" y="265" /><di:waypoint x="695" y="360" /><di:waypoint x="770" y="360" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f9" bpmnElement="f9">
+        <di:waypoint x="880" y="130" /><di:waypoint x="995" y="130" /><di:waypoint x="995" y="200" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f10" bpmnElement="f10">
+        <di:waypoint x="880" y="360" /><di:waypoint x="995" y="360" /><di:waypoint x="995" y="280" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="di_f11" bpmnElement="f11">
+        <di:waypoint x="1050" y="240" /><di:waypoint x="1100" y="240" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

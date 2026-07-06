@@ -1,0 +1,4 @@
+interface:
+  display_name: "Service Agent Lab"
+  short_description: "Maintain the evidence-based service agent project."
+  default_prompt: "Use $service-agent-lab to modify, test, or demonstrate the service-agent-lab project safely."

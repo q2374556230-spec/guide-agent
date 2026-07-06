@@ -1,0 +1,7 @@
+.git
+.venv
+__pycache__
+*.pyc
+.env
+report_template_strings.txt
+服务工程与应用实践报告_已填充.md
