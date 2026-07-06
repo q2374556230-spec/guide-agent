@@ -13,7 +13,7 @@ Web 后端(端口 8000)。一条命令启动整套可视化系统:
 import os, sys, json, time, threading
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # ---- 1. 本地模式:后台启动业务微服务 ----
 # Docker Compose / Kubernetes 中由独立容器启动微服务,设置
@@ -26,7 +26,7 @@ if EMBEDDED_SERVICES:
     import services.logistics_service as s_logi
 
     def _start(mod):
-        HTTPServerThread = HTTPServer(("127.0.0.1", mod.PORT), mod.H)
+        HTTPServerThread = ThreadingHTTPServer(("127.0.0.1", mod.PORT), mod.H)
         threading.Thread(target=HTTPServerThread.serve_forever, daemon=True).start()
 
     for m in (s_order, s_prod, s_logi):
@@ -47,11 +47,14 @@ class Handler(BaseHTTPRequestHandler):
         if isinstance(body, (dict, list)):
             body = json.dumps(body, ensure_ascii=False)
         data = body.encode("utf-8") if isinstance(body, str) else body
-        self.send_response(code)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
+        try:
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def do_GET(self):
         path = "index.html" if self.path in ("/", "") else self.path.lstrip("/")
@@ -88,4 +91,4 @@ if __name__ == "__main__":
     print("  请用浏览器打开:  http://localhost:8000")
     print("  按 Ctrl+C 退出")
     print("=" * 56)
-    HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+    ThreadingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
