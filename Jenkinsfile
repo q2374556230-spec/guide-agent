@@ -28,7 +28,7 @@ pipeline {
     stage('Check Tools') {
       steps {
         bat 'git --version'
-        bat 'python --version'
+        bat 'py -3.12 --version'
         bat 'docker version'
         bat 'kubectl version --client'
       }
@@ -48,19 +48,23 @@ pipeline {
 
     stage('Install') {
       steps {
-        bat 'python -m pip install -r requirements.txt'
+        bat '''
+          py -3.12 -m venv .venv
+          .\\.venv\\Scripts\\python.exe -m pip install --upgrade pip
+          .\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt
+        '''
       }
     }
 
     stage('Static Check') {
       steps {
-        bat 'python -m py_compile agent.py tools.py shopping_research_agent.py evaluate.py server.py scripts\\smoke_test.py'
+        bat '.\\.venv\\Scripts\\python.exe -m py_compile agent.py tools.py shopping_research_agent.py evaluate.py server.py scripts\\smoke_test.py'
       }
     }
 
     stage('Test') {
       steps {
-        bat 'python evaluate.py'
+        bat '.\\.venv\\Scripts\\python.exe evaluate.py'
       }
     }
 
@@ -138,7 +142,7 @@ pipeline {
                 } -ArgumentList $namespace
                 Start-Sleep -Seconds 8
                 try {
-                  python scripts\\smoke_test.py
+                  .\\.venv\\Scripts\\python.exe scripts\\smoke_test.py
                 } finally {
                   Stop-Job $job -ErrorAction SilentlyContinue
                   Remove-Job $job -ErrorAction SilentlyContinue
@@ -146,7 +150,7 @@ pipeline {
               '''
             }
           } else {
-            bat 'python scripts\\smoke_test.py'
+            bat '.\\.venv\\Scripts\\python.exe scripts\\smoke_test.py'
           }
         }
       }
