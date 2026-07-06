@@ -159,7 +159,7 @@ pipeline {
 
   post {
     always {
-      bat 'docker logout || exit /b 0'
+      echo 'Pipeline finished.'
     }
     success {
       echo "CI/CD finished successfully: ${env.IMAGE_FULL}"
