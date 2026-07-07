@@ -1,0 +1,255 @@
+{
+  "timestamp": "20260707_153553",
+  "base_url": "http://127.0.0.1:8000",
+  "rounds": 5,
+  "concurrency": 2,
+  "call_metrics": {
+    "total_requests": 20,
+    "success_requests": 20,
+    "failed_requests": 0,
+    "success_rate": 1.0,
+    "throughput_rps": 0.0927,
+    "elapsed_seconds": 215.6853,
+    "latency_ms": {
+      "avg": 20115.07,
+      "p50": 17426.72,
+      "p95": 32374.77,
+      "max": 36046.76
+    },
+    "status_codes": {
+      "200": 20
+    },
+    "case_results": [
+      {
+        "case": "product_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 17597.14,
+        "intent": "导购",
+        "reply_size": 565,
+        "error": null
+      },
+      {
+        "case": "logistics_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 19180.71,
+        "intent": "物流",
+        "reply_size": 789,
+        "error": null
+      },
+      {
+        "case": "aftersale_bpmn",
+        "success": true,
+        "status": 200,
+        "latency_ms": 7634.16,
+        "intent": "售后",
+        "reply_size": 127,
+        "error": null
+      },
+      {
+        "case": "product_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 15948.03,
+        "intent": "导购",
+        "reply_size": 679,
+        "error": null
+      },
+      {
+        "case": "shopping_agent",
+        "success": true,
+        "status": 200,
+        "latency_ms": 32374.77,
+        "intent": "导购",
+        "reply_size": 1739,
+        "error": null
+      },
+      {
+        "case": "logistics_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 14662.66,
+        "intent": "物流",
+        "reply_size": 517,
+        "error": null
+      },
+      {
+        "case": "aftersale_bpmn",
+        "success": true,
+        "status": 200,
+        "latency_ms": 17426.72,
+        "intent": "售后",
+        "reply_size": 127,
+        "error": null
+      },
+      {
+        "case": "shopping_agent",
+        "success": true,
+        "status": 200,
+        "latency_ms": 26662.15,
+        "intent": "导购",
+        "reply_size": 2254,
+        "error": null
+      },
+      {
+        "case": "product_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 16630.01,
+        "intent": "导购",
+        "reply_size": 456,
+        "error": null
+      },
+      {
+        "case": "logistics_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 8218.99,
+        "intent": "售后",
+        "reply_size": 127,
+        "error": null
+      },
+      {
+        "case": "aftersale_bpmn",
+        "success": true,
+        "status": 200,
+        "latency_ms": 6412.93,
+        "intent": "售后",
+        "reply_size": 127,
+        "error": null
+      },
+      {
+        "case": "product_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 16956.87,
+        "intent": "导购",
+        "reply_size": 785,
+        "error": null
+      },
+      {
+        "case": "logistics_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 9181.05,
+        "intent": "售后",
+        "reply_size": 127,
+        "error": null
+      },
+      {
+        "case": "shopping_agent",
+        "success": true,
+        "status": 200,
+        "latency_ms": 36046.76,
+        "intent": "导购",
+        "reply_size": 2335,
+        "error": null
+      },
+      {
+        "case": "aftersale_bpmn",
+        "success": true,
+        "status": 200,
+        "latency_ms": 32166.2,
+        "intent": "售后",
+        "reply_size": 127,
+        "error": null
+      },
+      {
+        "case": "shopping_agent",
+        "success": true,
+        "status": 200,
+        "latency_ms": 32301.84,
+        "intent": "导购",
+        "reply_size": 1887,
+        "error": null
+      },
+      {
+        "case": "product_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 17125.54,
+        "intent": "导购",
+        "reply_size": 747,
+        "error": null
+      },
+      {
+        "case": "aftersale_bpmn",
+        "success": true,
+        "status": 200,
+        "latency_ms": 17162.14,
+        "intent": "售后",
+        "reply_size": 127,
+        "error": null
+      },
+      {
+        "case": "logistics_query",
+        "success": true,
+        "status": 200,
+        "latency_ms": 27547.77,
+        "intent": "物流",
+        "reply_size": 481,
+        "error": null
+      },
+      {
+        "case": "shopping_agent",
+        "success": true,
+        "status": 200,
+        "latency_ms": 31065.04,
+        "intent": "导购",
+        "reply_size": 2105,
+        "error": null
+      }
+    ]
+  },
+  "resource_metrics": {
+    "docker_compose_ps": {
+      "available": true,
+      "returncode": 0,
+      "stdout": "NAME                     IMAGE                              COMMAND                  SERVICE      CREATED         STATUS                   PORTS\nguide-agent-cadvisor     gcr.io/cadvisor/cadvisor:v0.49.1   \"/usr/bin/cadvisor -…\"   cadvisor     6 minutes ago   Up 6 minutes (healthy)   0.0.0.0:8081->8080/tcp, [::]:8081->8080/tcp\nguide-agent-grafana      grafana/grafana:11.4.0             \"/run.sh\"                grafana      6 minutes ago   Up 6 minutes             0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp\nguide-agent-prometheus   prom/prometheus:v2.55.1            \"/bin/prometheus --c…\"   prometheus   6 minutes ago   Up 6 minutes             0.0.0.0:9090->9090/tcp, [::]:9090->9090/tcp",
+      "stderr": ""
+    },
+    "docker_stats": {
+      "available": true,
+      "returncode": 0,
+      "stdout": "CONTAINER ID   NAME                     CPU %     MEM USAGE / LIMIT     MEM %     NET I/O           BLOCK I/O         PIDS\nfba1e152253b   guide-agent-grafana      0.12%     56.23MiB / 15.46GiB   0.36%     12.3MB / 9.78MB   13.3MB / 48.1MB   24\nc1ed981c396c   guide-agent-prometheus   0.00%     34.86MiB / 15.46GiB   0.22%     3.22MB / 3MB      139kB / 1.83MB    20\nf8648bdddf13   guide-agent-cadvisor     1.14%     73.06MiB / 15.46GiB   0.46%     991kB / 1.02GB    9.13MB / 0B       30",
+      "stderr": ""
+    },
+    "k8s_pods": {
+      "available": true,
+      "returncode": 0,
+      "stdout": "NAME                                 READY   STATUS    RESTARTS   AGE   IP            NODE                    NOMINATED NODE   READINESS GATES\nagent-app-5f46986989-x4g89           1/1     Running   0          71m   10.244.0.29   desktop-control-plane   <none>           <none>\nlogistics-service-575f5c78f5-glzfn   1/1     Running   0          71m   10.244.0.28   desktop-control-plane   <none>           <none>\nlogistics-service-575f5c78f5-jlm48   1/1     Running   0          71m   10.244.0.32   desktop-control-plane   <none>           <none>\norder-service-76796c55c6-9tc88       1/1     Running   0          71m   10.244.0.26   desktop-control-plane   <none>           <none>\norder-service-76796c55c6-9zxf5       1/1     Running   0          71m   10.244.0.30   desktop-control-plane   <none>           <none>\nproduct-service-5dd5bc5cd9-cf8h9     1/1     Running   0          71m   10.244.0.31   desktop-control-plane   <none>           <none>\nproduct-service-5dd5bc5cd9-rhs92     1/1     Running   0          71m   10.244.0.27   desktop-control-plane   <none>           <none>",
+      "stderr": ""
+    },
+    "k8s_services": {
+      "available": true,
+      "returncode": 0,
+      "stdout": "NAME                TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE\nagent-app           NodePort    10.96.93.161    <none>        8000:30080/TCP   23h\nlogistics-service   ClusterIP   10.96.165.107   <none>        8003/TCP         23h\norder-service       ClusterIP   10.96.235.146   <none>        8001/TCP         23h\nproduct-service     ClusterIP   10.96.100.106   <none>        8002/TCP         23h",
+      "stderr": ""
+    },
+    "k8s_deployments": {
+      "available": true,
+      "returncode": 0,
+      "stdout": "NAME                READY   UP-TO-DATE   AVAILABLE   AGE\nagent-app           1/1     1            1           23h\nlogistics-service   2/2     2            2           23h\norder-service       2/2     2            2           23h\nproduct-service     2/2     2            2           23h",
+      "stderr": ""
+    },
+    "k8s_top_pods": {
+      "available": false,
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "error: Metrics API not available"
+    }
+  },
+  "quality_evaluation": {
+    "availability": "excellent",
+    "efficiency": "needs_improvement",
+    "robustness": "good",
+    "throughput": "low",
+    "method": {
+      "availability": "success_requests / total_requests",
+      "efficiency": "p95 latency; lower is better",
+      "robustness": "failed request count and error distribution",
+      "throughput": "total_requests / elapsed_seconds"
+    }
+  }
+}
