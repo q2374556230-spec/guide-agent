@@ -1,4 +1,4 @@
-pipeline {
+﻿pipeline {
   agent any
 
   options {
@@ -135,6 +135,7 @@ pipeline {
               powershell '''
                 $ErrorActionPreference = "Stop"
                 $env:KUBECONFIG = $env:KUBECONFIG_FILE
+                $env:SMOKE_CHAT_TIMEOUT = "90"
                 $namespace = $env:K8S_NAMESPACE
                 $job = Start-Job -ScriptBlock {
                   param($ns)
@@ -150,7 +151,7 @@ pipeline {
               '''
             }
           } else {
-            bat '.\\.venv\\Scripts\\python.exe scripts\\smoke_test.py'
+            bat 'set SMOKE_CHAT_TIMEOUT=90 && .\\.venv\\Scripts\\python.exe scripts\\smoke_test.py'
           }
         }
       }
