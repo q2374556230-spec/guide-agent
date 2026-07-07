@@ -213,6 +213,40 @@ kubeconfig-service-agent-lab
 
 如果本地 Jenkins 没有公网地址，可以先手动点击 `Build with Parameters` 完成课程演示。
 
+## 服务质量评价
+
+项目提供轻量级监控脚本和评价说明，用于完成课程中的服务质量评价实践。
+
+运行监控：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\quality_monitor.py --base-url http://127.0.0.1:8000 --rounds 5 --concurrency 2
+```
+
+脚本会采集：
+
+```text
+请求总数、成功率、状态码分布、平均延迟、P50/P95 延迟、最大延迟、吞吐率
+```
+
+并尝试读取：
+
+```text
+docker compose ps
+docker stats --no-stream
+kubectl get pods/svc/deploy
+kubectl top pods
+```
+
+结果输出到：
+
+```text
+reports/quality/<timestamp>/summary.md
+reports/quality/<timestamp>/metrics.json
+```
+
+详细说明见 `docs/SERVICE_QUALITY.md`。
+
 ## 目录结构
 
 ```text
