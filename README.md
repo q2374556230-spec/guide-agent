@@ -1,65 +1,255 @@
-# 校园电商/外卖智能服务助理 —— 可运行参考系统
+﻿# Guide Agent: 电商服务智能体实验项目
 
-本仓库是《基于 Agent 的服务工程应用实践》四次课的**完整可运行参考系统**。
-三层架构:**业务流程(BPMN)→ 微服务(http.server)→ Agent 智能编排**。
+本项目是一个面向《服务工程与应用实践》的电商服务 Agent 实验系统。项目在原有订单查询、物流查询、商品咨询、售后 BPMN 流程的基础上，新增了“基于商品证据包的真实 LLM 个性化导购 Agent”，并补充了 Docker、Jenkins、Kubernetes、Secret 注入和自动化部署验证流程。
 
-## 特点:零依赖、离线可跑、可复现
-- 仅用 **Python 标准库 + numpy + requests**(沙箱/无外网环境也能跑)。
-- 大模型默认走 `MockLLM` 教学桩(确定性、可复现);配置 `OPENAI_API_KEY` 后**同一套代码**自动切换为真实大模型。
+项目重点不是重写原系统，而是在保留原有功能的前提下，增强“购买决策/导购”路径：给 LLM 配备导购工具集，让模型基于商品信息、评价摘要、销量信号、店铺售后信息和用户偏好进行推荐推理。
 
-## 目录
+## 核心功能
+
+- 订单查询：查询订单状态、金额、商品等信息。
+- 物流查询：通过工具调用查询物流进度和超时补偿说明。
+- 普通商品咨询：查询商品价格、库存、基础信息。
+- 售后流程：保留 `aftersale.bpmn`，通过 BPMN 引擎执行退款/售后流程。
+- 增强导购：基于 `shopping_research_agent.py` 构造 evidence 证据包，再由真实 LLM 或 fallback 规则输出个性化推荐。
+- Web Trace：Web 页面展示 Agent 路由、工具调用、导购证据收集和推理链路。
+- DevOps：支持 Docker Compose、Jenkins Pipeline、Kubernetes 部署和 Smoke Test。
+
+## 导购创新路径
+
+用户输入购买需求后，例如：
+
+```text
+我想买一个300元以内的蓝牙耳机，主要在宿舍和图书馆用，想要降噪好一点，别漏音，续航别太差
 ```
+
+系统执行链路：
+
+```text
+Web 输入
+→ server.py
+→ app.py / agent.py
+→ expert_shopping
+→ shopping_research_agent.py
+→ 需求理解
+→ collect_product_candidates
+→ collect_review_summary
+→ collect_sales_signal
+→ collect_store_profile
+→ 构造 evidence 证据包
+→ 真实 LLM 基于证据推理
+→ 输出 Top3 推荐、风险提醒、不推荐项和数据来源说明
+```
+
+如果没有配置真实 LLM，或 LLM 调用失败，系统会自动回退到 `tools.recommend_products` 规则推荐，保证演示稳定。
+
+## 运行环境
+
+建议环境：
+
+- Python 3.11 或 3.12
+- Docker Desktop
+- kubectl
+- Jenkins on Windows
+- 可选：OpenAI-compatible LLM API Key
+
+安装依赖：
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+## 本地运行
+
+启动 Web 服务：
+
+```powershell
+.\.venv\Scripts\python.exe server.py
+```
+
+访问：
+
+```text
+http://127.0.0.1:8000
+```
+
+常用验证命令：
+
+```powershell
+.\.venv\Scripts\python.exe -m py_compile agent.py tools.py shopping_research_agent.py evaluate.py server.py
+.\.venv\Scripts\python.exe evaluate.py
+```
+
+单独测试导购 Agent：
+
+```powershell
+.\.venv\Scripts\python.exe -c "from shopping_research_agent import shopping_research_agent; r=shopping_research_agent('我想买一个300元以内的蓝牙耳机，图书馆用，重视降噪和续航，不想漏音'); print('\n'.join(r['trace'])); print(r['answer'])"
+```
+
+## 真实 LLM 配置
+
+本地开发可创建 `.env`，但不要提交到 GitHub：
+
+```text
+OPENAI_API_KEY=你的真实Key
+OPENAI_BASE_URL=https://api.deepseek.com
+CHAT_MODEL=deepseek-v4-flash
+SHOPPING_AGENT_MODE=auto
+PRODUCT_SOURCE=demo
+```
+
+`llm.py` 会根据环境变量自动切换：
+
+```text
+有 OPENAI_API_KEY → real LLM
+无 OPENAI_API_KEY → MockLLM / 规则 fallback
+```
+
+## Docker Compose
+
+本机容器化运行：
+
+```powershell
+docker compose up -d --build
+```
+
+Compose 会启动：
+
+```text
+agent-app
+order-service
+product-service
+logistics-service
+```
+
+查看状态：
+
+```powershell
+docker compose ps
+```
+
+## Kubernetes 部署
+
+K8s 资源位于 `k8s/`：
+
+```text
+k8s/
+  namespace.yaml
+  config.yaml
+  agent-app.yaml
+  order-service.yaml
+  product-service.yaml
+  logistics-service.yaml
+  kustomization.yaml
+  llm-secret.example.yaml
+```
+
+部署后查看状态：
+
+```powershell
+kubectl -n service-agent-lab get pods
+kubectl -n service-agent-lab get svc
+kubectl -n service-agent-lab get deploy
+```
+
+访问 Web：
+
+```powershell
+kubectl -n service-agent-lab port-forward svc/agent-app 8000:8000
+```
+
+浏览器打开：
+
+```text
+http://127.0.0.1:8000
+```
+
+K8s 中启用真实 LLM：
+
+```powershell
+kubectl -n service-agent-lab create secret generic service-agent-llm-secret --from-env-file=.env --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n service-agent-lab rollout restart deployment/agent-app
+kubectl -n service-agent-lab rollout status deployment/agent-app
+```
+
+验证容器内 LLM 后端：
+
+```powershell
+kubectl -n service-agent-lab exec deploy/agent-app -- python -c "import os,llm; print('key已读取=', bool(os.getenv('OPENAI_API_KEY'))); print('后端=', llm.BACKEND)"
+```
+
+## Jenkins 自动化部署
+
+`Jenkinsfile` 已适配 Windows Jenkins，核心流程：
+
+```text
+Checkout
+→ Check Tools
+→ Prepare image tag
+→ 创建 .venv
+→ pip install
+→ py_compile
+→ evaluate.py
+→ docker build
+→ 按 DEPLOY_TARGET 部署
+→ smoke test
+```
+
+流水线参数：
+
+```text
+DEPLOY_TARGET=none     只测试和构建镜像
+DEPLOY_TARGET=compose  部署到 Docker Compose
+DEPLOY_TARGET=k8s      推送镜像并部署到 Kubernetes
+```
+
+Jenkins 需要的凭据：
+
+```text
+docker-registry-credentials
+kubeconfig-service-agent-lab
+```
+
+如果本地 Jenkins 没有公网地址，可以先手动点击 `Build with Parameters` 完成课程演示。
+
+## 目录结构
+
+```text
 service-agent-lab/
-├── data.py                  # 模拟业务数据(订单/商品/物流/政策)
-├── llm.py                   # LLM 客户端(真实 OpenAI 兼容 / MockLLM 自动切换)
-├── services/                # 微服务(标准库 http.server,各占一端口)
-│   ├── order_service.py     #   8001  订单(查询/退款)
-│   ├── product_service.py   #   8002  商品
-│   └── logistics_service.py #   8003  物流
-├── tools.py                 # 工具层:把微服务包装成 Agent 工具 + 工具契约
-├── rag.py                   # RAG:numpy 字符 n-gram 向量检索
-├── memory.py                # 会话记忆:滑动窗口/摘要/长期画像
-├── agent.py                 # 意图识别 / ReAct / 多Agent 路由+专家
-├── guardrails.py            # 护栏:防注入/防越权/PII脱敏
-├── evaluate.py              # 离线评测 + LLM-as-judge
-└── app.py                   # 端到端集成:护栏→编排→脱敏→追踪
+  agent.py                    # 意图路由、专家分流、ReAct/工具路径
+  app.py                      # Web 后端调用入口封装
+  server.py                   # Web 服务入口
+  llm.py                      # 真实 LLM / MockLLM 自动切换
+  tools.py                    # 工具契约和业务工具
+  shopping_research_agent.py  # 个性化导购 Agent
+  bpmn_engine.py              # BPMN 执行引擎
+  bpmn_handlers.py            # 售后 BPMN handlers
+  shopping_bpmn_handlers.py   # 实验三导购 BPMN handlers
+  data.py                     # Demo 业务数据
+  evaluate.py                 # 自动化评测
+  Jenkinsfile                 # Jenkins CI/CD Pipeline
+  Dockerfile
+  docker-compose.yml
+  requirements.txt
+
+  services/                   # 订单、商品、物流微服务
+  flows/                      # BPMN 流程文件
+  web/                        # Web 页面和展示资源
+  k8s/                        # Kubernetes 部署资源
+  scripts/                    # 部署和 smoke test 脚本
+  docs/                       # 运行、部署、BPMN、CI/CD 文档
+  reports/                    # 实验报告
+  skills/                     # 项目形式化 Skill 材料
+  java_integration/           # Java 集成示例
 ```
 
-## 快速开始
-```bash
-# 1) 启动三个微服务(后台)
-python3 services/order_service.py &
-python3 services/product_service.py &
-python3 services/logistics_service.py &
+## 安全说明
 
-# 2) 跑各层演示
-python3 agent.py        # 不直接运行;在实验中按需 import
-python3 rag.py          # RAG 检索排序
-python3 evaluate.py     # 评测打分(默认 80%)
-POLICY_K=3 python3 evaluate.py   # 调大检索→100%(评测驱动改进)
-python3 app.py          # 端到端:护栏+多Agent+脱敏+追踪
-```
+- `.env` 不应提交到 GitHub。
+- API Key 使用本地 `.env` 或 K8s Secret 注入。
+- 如果 Key 曾经出现在聊天记录、截图或终端公开日志中，建议在供应商后台轮换。
 
-## 切换到真实大模型(学生在自己电脑上)
-```bash
-export OPENAI_API_KEY=sk-xxxx
-export OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-export CHAT_MODEL=qwen-plus
-# 之后所有脚本调用的就是真实模型,代码无需改动
-```
+## 项目总结
 
-## 云原生 & 对接现有系统
-所有地址/密钥都用环境变量注入(12-Factor),易容器化、易集成:
-```bash
-docker compose up --build        # 每个微服务一个容器,按服务名互相发现
-```
-- 对接你已有的系统:把 `ORDER_URL / PRODUCT_URL / LOGISTICS_URL` 指向你的真实微服务即可,上层不动。
-- 用企业模型网关:把 `OPENAI_BASE_URL` 指向网关地址。
-- 已提供 `Dockerfile`、`docker-compose.yml`、`k8s/order-service.yaml`(部署示例)。
-
-## 升级到生产栈(可选)
-- 微服务 `http.server` → **FastAPI**(契约/校验/文档更完善)。
-- 向量检索 numpy n-gram → **嵌入模型 + Chroma/FAISS**。
-- 多 Agent 编排手写 → **LangGraph**(显式状态图、检查点、人审)。
-- 工具接入 → **MCP**(标准化、可复用)。
-概念与代码骨架一一对应,迁移成本低。
+本项目实现了一个可运行、可展示、可部署的服务工程 Agent 系统：原有订单、物流、商品咨询和售后 BPMN 功能保持不变；新增导购 Agent 通过工具集收集商品证据，并由真实 LLM 基于 evidence 进行个性化推荐推理；工程侧补齐了 Docker、Jenkins、Kubernetes、Secret 管理和自动化测试部署链路，形成从开发到运行维护的完整闭环。
