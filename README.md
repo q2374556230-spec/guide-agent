@@ -215,12 +215,26 @@ kubeconfig-service-agent-lab
 
 ## 服务质量评价
 
-项目提供轻量级监控脚本和评价说明，用于完成课程中的服务质量评价实践。
+项目提供 Prometheus、Grafana、cAdvisor 和轻量级采样脚本，用于完成课程中的服务质量评价实践。
+
+启动自动化监控工具：
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d --build
+```
+
+访问：
+
+```text
+Prometheus: http://127.0.0.1:9090
+Grafana:    http://127.0.0.1:3000  admin/admin
+cAdvisor:  http://127.0.0.1:8081
+```
 
 运行监控：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\quality_monitor.py --base-url http://127.0.0.1:8000 --rounds 5 --concurrency 2
+.\.venv\Scripts\python.exe scripts\quality_monitor.py --base-url http://127.0.0.1:8000 --rounds 5 --concurrency 2 --timeout 90
 ```
 
 脚本会采集：
@@ -271,6 +285,7 @@ service-agent-lab/
   flows/                      # BPMN 流程文件
   web/                        # Web 页面和展示资源
   k8s/                        # Kubernetes 部署资源
+  monitoring/                 # Prometheus / Grafana / cAdvisor 配置
   scripts/                    # 部署和 smoke test 脚本
   docs/                       # 运行、部署、BPMN、CI/CD 文档
   reports/                    # 实验报告

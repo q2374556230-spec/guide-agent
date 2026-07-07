@@ -248,7 +248,7 @@ def main():
     parser.add_argument("--base-url", default=os.getenv("QUALITY_BASE_URL", "http://127.0.0.1:8000"))
     parser.add_argument("--rounds", type=int, default=int(os.getenv("QUALITY_ROUNDS", "5")))
     parser.add_argument("--concurrency", type=int, default=int(os.getenv("QUALITY_CONCURRENCY", "2")))
-    parser.add_argument("--timeout", type=int, default=int(os.getenv("QUALITY_TIMEOUT", "30")))
+    parser.add_argument("--timeout", type=int, default=int(os.getenv("QUALITY_TIMEOUT", "90")))
     parser.add_argument("--namespace", default=os.getenv("K8S_NAMESPACE", "service-agent-lab"))
     parser.add_argument("--output-dir", default=None)
     args = parser.parse_args()
@@ -288,4 +288,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-

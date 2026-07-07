@@ -39,6 +39,73 @@ from memory import Memory
 SESSIONS = {}   # user_id -> Memory(每个用户一份会话记忆)
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+METRICS_LOCK = threading.Lock()
+CHAT_BUCKETS = (0.5, 1, 2, 5, 10, 30, 60, 120)
+METRICS = {
+    "http_requests": {},
+    "chat_requests": {},
+    "chat_latency_sum": 0.0,
+    "chat_latency_count": 0,
+    "chat_latency_buckets": {bucket: 0 for bucket in CHAT_BUCKETS},
+}
+
+
+def _metric_inc(group, labels, value=1):
+    key = tuple(sorted(labels.items()))
+    with METRICS_LOCK:
+        METRICS[group][key] = METRICS[group].get(key, 0) + value
+
+
+def _observe_chat_latency(seconds):
+    with METRICS_LOCK:
+        METRICS["chat_latency_sum"] += seconds
+        METRICS["chat_latency_count"] += 1
+        for bucket in CHAT_BUCKETS:
+            if seconds <= bucket:
+                METRICS["chat_latency_buckets"][bucket] += 1
+
+
+def _labels_to_text(items):
+    if not items:
+        return ""
+    parts = [f'{key}="{str(value).replace(chr(34), chr(39))}"' for key, value in items]
+    return "{" + ",".join(parts) + "}"
+
+
+def _render_metrics():
+    lines = [
+        "# HELP service_agent_http_requests_total HTTP requests handled by the web gateway.",
+        "# TYPE service_agent_http_requests_total counter",
+    ]
+    with METRICS_LOCK:
+        http_requests = dict(METRICS["http_requests"])
+        chat_requests = dict(METRICS["chat_requests"])
+        latency_sum = METRICS["chat_latency_sum"]
+        latency_count = METRICS["chat_latency_count"]
+        latency_buckets = dict(METRICS["chat_latency_buckets"])
+
+    for labels, value in sorted(http_requests.items()):
+        lines.append(f"service_agent_http_requests_total{_labels_to_text(labels)} {value}")
+
+    lines.extend([
+        "# HELP service_agent_chat_requests_total Chat requests grouped by routed intent.",
+        "# TYPE service_agent_chat_requests_total counter",
+    ])
+    for labels, value in sorted(chat_requests.items()):
+        lines.append(f"service_agent_chat_requests_total{_labels_to_text(labels)} {value}")
+
+    lines.extend([
+        "# HELP service_agent_chat_latency_seconds Chat request latency in seconds.",
+        "# TYPE service_agent_chat_latency_seconds histogram",
+    ])
+    cumulative = 0
+    for bucket in CHAT_BUCKETS:
+        cumulative = latency_buckets[bucket]
+        lines.append(f'service_agent_chat_latency_seconds_bucket{{le="{bucket}"}} {cumulative}')
+    lines.append(f'service_agent_chat_latency_seconds_bucket{{le="+Inf"}} {latency_count}')
+    lines.append(f"service_agent_chat_latency_seconds_sum {latency_sum}")
+    lines.append(f"service_agent_chat_latency_seconds_count {latency_count}")
+    return "\n".join(lines) + "\n"
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
@@ -57,12 +124,17 @@ class Handler(BaseHTTPRequestHandler):
             pass
 
     def do_GET(self):
+        if self.path == "/metrics":
+            _metric_inc("http_requests", {"method": "GET", "path": "/metrics", "status": "200"})
+            return self._send(200, _render_metrics(), "text/plain; version=0.0.4; charset=utf-8")
         path = "index.html" if self.path in ("/", "") else self.path.lstrip("/")
         fp = os.path.join(WEB_DIR, os.path.basename(path))
         if os.path.isfile(fp):
             ctype = "text/html; charset=utf-8" if fp.endswith(".html") else "text/plain; charset=utf-8"
             with open(fp, "rb") as f:
+                _metric_inc("http_requests", {"method": "GET", "path": "/" if self.path in ("/", "") else "/asset", "status": "200"})
                 return self._send(200, f.read(), ctype)
+        _metric_inc("http_requests", {"method": "GET", "path": "other", "status": "404"})
         self._send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -76,10 +148,23 @@ class Handler(BaseHTTPRequestHandler):
         uid = req.get("user_id", "u001")
         msg = (req.get("message") or "").strip()
         if not msg:
+            _metric_inc("http_requests", {"method": "POST", "path": "/api/chat", "status": "400"})
             return self._send(400, {"error": "empty message"})
         mem = SESSIONS.setdefault(uid, Memory())
-        result = serve_struct(uid, msg, memory=mem)
-        self._send(200, result)
+        started = time.perf_counter()
+        try:
+            result = serve_struct(uid, msg, memory=mem)
+            elapsed = time.perf_counter() - started
+            _observe_chat_latency(elapsed)
+            _metric_inc("http_requests", {"method": "POST", "path": "/api/chat", "status": "200"})
+            _metric_inc("chat_requests", {"intent": result.get("intent", "unknown")})
+            self._send(200, result)
+        except Exception as exc:
+            elapsed = time.perf_counter() - started
+            _observe_chat_latency(elapsed)
+            _metric_inc("http_requests", {"method": "POST", "path": "/api/chat", "status": "500"})
+            _metric_inc("chat_requests", {"intent": "error"})
+            self._send(500, {"error": str(exc)})
 
 if __name__ == "__main__":
     print("=" * 56)
